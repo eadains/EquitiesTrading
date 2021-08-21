@@ -13,7 +13,9 @@ def get_prices():
         SELECT
             date,
             ticker,
-            closeadj
+            closeadj,
+            close,
+            volume
         FROM
             prices
         WHERE
@@ -45,10 +47,14 @@ def get_prices():
             cur.execute(sql)
             results = cur.fetchall()
 
-    prices = pd.DataFrame(results, columns=["date", "ticker", "closeadj"])
+    prices = pd.DataFrame.from_records(
+        results,
+        columns=["date", "ticker", "closeadj", "close", "volume"],
+        coerce_float=True,
+    )
     # There aren't duplicates here usually, but drop them just to be sure
     prices = prices.drop_duplicates(subset=["date", "ticker"])
-    prices = prices.set_index(["date", "ticker"], verify_integrity=True).dropna()
+    prices = prices.set_index(["date", "ticker"], verify_integrity=True)
     return prices
 
 
@@ -95,14 +101,16 @@ def get_fundamentals(columns, prices):
             cur.execute(sql)
             results = cur.fetchall()
 
-    fundamentals = pd.DataFrame(results, columns=["datekey", "ticker"] + columns)
+    fundamentals = pd.DataFrame.from_records(
+        results, columns=["datekey", "ticker"] + columns, coerce_float=True
+    )
     # For some reason when fetching prices the column already has datetime type,
     # but it doesn't here, so we have to manually convert it
     fundamentals["datekey"] = pd.to_datetime(fundamentals["datekey"])
     # Drop duplicates for setting index. There are some here for reasons that are beyond me.
     fundamentals = fundamentals.drop_duplicates(subset=["datekey", "ticker"])
     fundamentals = fundamentals.set_index(["datekey", "ticker"], verify_integrity=True)
-    fundamentals = do_reindex(fundamentals, prices).dropna()
+    fundamentals = do_reindex(fundamentals, prices)
     return fundamentals
 
 
