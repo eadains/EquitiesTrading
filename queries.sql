@@ -37,3 +37,21 @@ WHERE
     )
 ORDER BY
     date ASC;
+
+SELECT
+    *
+FROM
+    prices
+WHERE
+    ticker IN (
+        SELECT
+            *
+        FROM
+            tickers
+        WHERE
+            (
+                category = 'ETF'
+                AND isdelisted = FALSE
+                AND firstpricedate <= '2007-12-31' :: date
+            )
+    );

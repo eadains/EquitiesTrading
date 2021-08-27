@@ -28,7 +28,7 @@ def get_prices():
                     frequency = 'DAILY'
                 GROUP BY
                     EXTRACT(
-                        MONTH
+                        QUARTER
                         FROM
                             date
                     ),
@@ -112,6 +112,21 @@ def get_fundamentals(columns, prices):
     fundamentals = fundamentals.set_index(["datekey", "ticker"], verify_integrity=True)
     fundamentals = do_reindex(fundamentals, prices)
     return fundamentals
+
+
+def filter_fundamentals(df):
+    """
+    Filter fundamental data for sensibility. REQUIRES 'sharefactor'
+    AND 'sharesbas' COLUMNS
+    - Market cap > 10,000,000
+    - 250 > Price > 5
+    - Share factor == 1
+    """
+    df["market_cap"] = df["sharesbas"] * df["close"]
+    df = df[df["sharefactor"] == 1]
+    df = df[df["close"].between(5, 250)]
+    df = df[df["market_cap"] > 10000000]
+    return df.dropna()
 
 
 def get_data(columns):
