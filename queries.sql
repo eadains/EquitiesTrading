@@ -1,5 +1,5 @@
 SELECT
-    ticker
+    COUNT(DISTINCT(ticker))
 FROM
     tickers
 WHERE
@@ -24,4 +24,5 @@ WHERE
         ) >= 5
         AND category = 'Domestic Common Stock'
         AND currency = 'USD'
+        AND EXCHANGE != 'OTC'
     );

@@ -64,6 +64,8 @@ def get_prices_df(ticker):
     prices_df = pd.DataFrame.from_records(
         results, columns=["date", "closeadj", "close", "volume"], coerce_float=True
     )
+    # Data consistency isn't 100%, so drop duplicated date rows
+    prices_df = prices_df.drop_duplicates(subset=["date"])
     prices_df = prices_df.set_index("date", verify_integrity=True).sort_index()
     # Sometimes columns are totally empty so pandas fills with None but we actually want NaN
     # for math
@@ -127,6 +129,8 @@ def get_fundamentals_df(ticker):
         coerce_float=True,
     )
     fund_df["date"] = pd.to_datetime(fund_df["date"])
+    # Data consistency isn't 100%, so drop duplicated date rows
+    fund_df = fund_df.drop_duplicates(subset=["date"])
     fund_df = fund_df.set_index("date", verify_integrity=True).sort_index()
     fund_df = fund_df.replace([None], np.nan)
     return fund_df
@@ -221,7 +225,11 @@ def create_feature_df(ticker):
     df = df.join(prices_df)
 
     # Create a range of end-of-month dates
-    dates = pd.bdate_range(start=df.index[0], end=df.index[-1], freq="M")
+    # Skip if index is size 0
+    if df.index.size > 0:
+        dates = pd.bdate_range(start=df.index[0], end=df.index[-1], freq="M")
+    else:
+        return None
     rolling_dfs = []
 
     # For each end of month date, select all data from the past year
@@ -242,4 +250,8 @@ def create_feature_df(ticker):
     df["forward_ret"] = df["monthly_ret"].shift(-1)
     df["ticker"] = ticker
     df = df.dropna()
-    return df
+    # If dataframe has any rows, write to csv
+    if len(df) > 1:
+        df.to_csv(f"csv/{ticker}.csv", index=False)
+        print(f"{ticker} done!")
+    return None
